@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+motor
+pymongo
+pyjwt
+passlib[bcrypt]
+python-dotenv
+openai
+pdfplumber
+python-telegram-bot
+apscheduler
+yfinance
+httpx
+pydantic[email]
+python-multipart

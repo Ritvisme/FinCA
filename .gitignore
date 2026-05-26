@@ -1,0 +1,43 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
+venv/
+env/
+.venv
+
+# Environment variables - NEVER commit this
+.env
+.env.local
+.env.production
+
+# MongoDB
+*.db
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Frontend
+node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+
+# Uploads
+uploads/
