@@ -7,7 +7,7 @@ class UserCreate(BaseModel):
     email: EmailStr
     password: str
     name: Optional[str] = None
-    role=str="client"
+    role:str="client"
 
 class UserLogin(BaseModel):
     email: EmailStr
@@ -24,6 +24,6 @@ class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
-class ToekenData(BaseModel):
+class TokenData(BaseModel):
     user_id: Optional[str] = None
     role: Optional[str] = None
