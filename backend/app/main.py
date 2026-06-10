@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.database import connect_db, close_db
+from app.auth.routes import router as auth_router
 
 
 @asynccontextmanager
@@ -26,10 +27,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_router, prefix="/api/v1")
+
 
 @app.get("/")
 async def root():
-    return {"message": "FinCA API is running 🚀"}
+    return {"message": "FinCA API is running"}
 
 
 @app.get("/health")
