@@ -2,8 +2,8 @@
 # to verify if that client, or token should be processed or not and if the user has the appropriate role to access the resources that 
 # they are trying to access
 
-from fastapi import depends,HTTPexception,status
-from fastapi.security import HTTPbearer, HTTPauthorizationcredentials
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import jwt
 
 from app.auth.utils import decode_access_token
@@ -17,7 +17,7 @@ async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(s
         payload=decode_access_token(token)
         user_id=payload.get("user_id")
         if not user_id:
-            raise HTTException(status_code=401, detail="Invalid token")
+            raise HTTPException(status_code=401, detail="Invalid token")
     except jwt.ExpiredSignatureError:#dealing with a valid but expire token
         raise HTTPException(status_code=401, detail="Token has expired")
     except jwt.InvalidTokenError:#dealing with an invalid token

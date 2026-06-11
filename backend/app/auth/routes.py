@@ -16,20 +16,23 @@ from app.auth.middleware import get_current_user
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
-@router.post("/register", response_model=UserOut)
-async def register(user_data: UserCreate):
+@router.post("/register", response_model=UserOut)#this means the response will only contain the fields defined in userout to prevent password leakage.
+async def register(user_data: UserCreate):#validates the incoming json data against usercreate schema and then we are checking if 
+    """ the email is already registered in the database if it is then we are raising an HTTP exception otherwise we are creating a new user document
+        with a unique id, name, email, hashed password, role and created_at timestamp and inserting it into the database and then returning the user data
+        without the password hash"""
     db = get_db()
 
     existing = await db["users"].find_one({"email": user_data.email})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    user_id = str(uuid.uuid4())
+    user_id = str(uuid.uuid4())#generates a unique user id using uuid4 and converting it to string if the user dont exist
     user_doc = {
         "_id": user_id,
         "name": user_data.name,
         "email": user_data.email,
-        "password_hash": hash_password(user_data.password),
+        "password_hash": hash_password(user_data.password),#only stores the hashed password in db.
         "role": user_data.role,
         "created_at": datetime.now(timezone.utc),
     }
