@@ -9,16 +9,16 @@ Categories=["Food","Transport",
 class TransactionCreate(BaseModel):
     amount:float
     category:str
-    date:date=None
-    description:Optional[str]
-    merchant=Optional[str]
+    date:Optional[date]=None
+    description:Optional[str]=None
+    merchant:Optional[str]=None
 
 class TransactionUpdate(BaseModel):
-    amount:Optional[float]
-    category:Optional[str]
-    date:Optional[date]
-    description:Optional[str]
-    merchant:Optional[str]
+    amount:Optional[float]=None
+    category:Optional[str]=None
+    date:Optional[date]=None
+    description:Optional[str]=None
+    merchant:Optional[str]=None
 class TransactionOut(BaseModel):
     id:str
     client_id:str

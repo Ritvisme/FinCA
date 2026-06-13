@@ -50,7 +50,7 @@ async def get_transactions(
     if category:
         query["category"] = category
     cursor = db["expense_transactions"].find(query).sort("date", -1)
-    return await cursor.to_list(length=500)
+    return await cursor.to_list(length=500)#safety cap so if someone imports lets say a csv file with 10k transactions we dont want to upload that to our server which can potentially crash it.
 
 
 async def update_transaction(txn_id: str, client_id: str, updates: dict):
