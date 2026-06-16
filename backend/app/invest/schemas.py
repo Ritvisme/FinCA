@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 from datetime import date,datetime
 
@@ -17,7 +17,8 @@ class HoldingUpdate(BaseModel):
     purchase_price:Optional[float]=None
 
 class HoldingOut(BaseModel):
-    id: str
+    model_config = ConfigDict(populate_by_name=True)
+    id: str = Field(alias="_id")
     client_id: str
     name: str
     asset_type: str
@@ -39,7 +40,8 @@ class GoalUpdate(BaseModel):
     current_amount:Optional[float]=None
 
 class GoalOut(BaseModel):
-    id:str
+    model_config = ConfigDict(populate_by_name=True)
+    id:str = Field(alias="_id")
     client_id:str
     name:str
     target_amount:float
@@ -56,7 +58,8 @@ class SIPCreate(BaseModel):
     start_date:date
 
 class SIPOut(BaseModel):
-    id:str
+    model_config = ConfigDict(populate_by_name=True)
+    id:str = Field(alias="_id")
     client_id:str
     name:str
     amount:float

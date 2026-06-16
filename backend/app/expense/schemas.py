@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional
 from datetime import date,datetime
 
@@ -20,7 +20,8 @@ class TransactionUpdate(BaseModel):
     description:Optional[str]=None
     merchant:Optional[str]=None
 class TransactionOut(BaseModel):
-    id:str
+    model_config = ConfigDict(populate_by_name=True)
+    id:str = Field(alias="_id")
     client_id:str
     amount:float
     category:str
@@ -37,7 +38,8 @@ class BudgetCreate(BaseModel):
     allocations: dict                   # {"food": 3000, "transport": 1500, ...}
 
 class BudgetOut(BaseModel):
-    id: str
+    model_config = ConfigDict(populate_by_name=True)
+    id: str = Field(alias="_id")
     client_id: str
     month: str
     income: Optional[float] = None

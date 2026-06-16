@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from app.database import connect_db, close_db
 from app.auth.routes import router as auth_router
 from app.expense.router import router as expense_router
+from app.invest.router import router as invest_router
 
 
 @asynccontextmanager
@@ -30,6 +31,7 @@ app.add_middleware(
 
 app.include_router(auth_router, prefix="/api/v1")
 app.include_router(expense_router, prefix="/api/v1")
+app.include_router(invest_router, prefix="/api/v1")
 
 
 @app.get("/")
