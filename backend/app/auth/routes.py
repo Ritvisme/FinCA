@@ -2,8 +2,12 @@ from fastapi import APIRouter, HTTPException, Response, Request, Depends
 from datetime import datetime, timezone
 import uuid
 
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token as google_id_token
+
 from app.database import get_db
-from app.models.schemas import UserCreate, UserLogin, Token, UserOut
+from app.config import settings
+from app.models.schemas import UserCreate, UserLogin, GoogleLogin, Token, UserOut
 from app.auth.utils import (
     hash_password,
     verify_password,
@@ -14,6 +18,18 @@ from app.auth.utils import (
 from app.auth.middleware import get_current_user
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
+
+
+def _set_refresh_cookie(response: Response, refresh_token: str) -> None:
+    """One helper so login, refresh, and Google-login all match."""
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=settings.ENVIRONMENT == "prod",
+        samesite="lax",
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+    )
 
 
 @router.post("/register", response_model=UserOut)#this means the response will only contain the fields defined in userout to prevent password leakage.
@@ -62,15 +78,47 @@ async def login(user_data: UserLogin, response: Response):
     access_token = create_access_token(token_data)
     refresh_token = create_refresh_token(token_data)
 
-    response.set_cookie(
-        key="refresh_token",
-        value=refresh_token,
-        httponly=True,
-        secure=True,
-        samesite="lax",
-        max_age=86400,
-    )
+    _set_refresh_cookie(response, refresh_token)
 
+    return Token(access_token=access_token)
+
+
+@router.post("/google", response_model=Token)
+async def google_login(data: GoogleLogin, response: Response):
+    """Verify a Google ID token, then log the user in (creating an account on first sign-in)."""
+    if not settings.GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=500, detail="Google login not configured")
+
+    try:
+        info = google_id_token.verify_oauth2_token(
+            data.id_token, google_requests.Request(), settings.GOOGLE_CLIENT_ID
+        )
+    except ValueError:
+        raise HTTPException(status_code=401, detail="Invalid Google token")
+
+    email = info.get("email")
+    if not email or not info.get("email_verified"):
+        raise HTTPException(status_code=401, detail="Google account email not verified")
+
+    db = get_db()
+    user = await db["users"].find_one({"email": email})
+    if not user:
+        user_id = str(uuid.uuid4())
+        user = {
+            "_id": user_id,
+            "name": info.get("name") or email.split("@")[0],
+            "email": email,
+            "password_hash": None,  # Google users have no password
+            "role": "client",
+            "google_id": info.get("sub"),
+            "created_at": datetime.now(timezone.utc),
+        }
+        await db["users"].insert_one(user)
+
+    token_data = {"user_id": user["_id"], "role": user["role"]}
+    access_token = create_access_token(token_data)
+    refresh_token = create_refresh_token(token_data)
+    _set_refresh_cookie(response, refresh_token)
     return Token(access_token=access_token)
 
 
@@ -89,14 +137,7 @@ async def refresh(request: Request, response: Response):
     new_access = create_access_token(token_data)
     new_refresh = create_refresh_token(token_data)
 
-    response.set_cookie(
-        key="refresh_token",
-        value=new_refresh,
-        httponly=True,
-        secure=True,
-        samesite="lax",
-        max_age=86400,
-    )
+    _set_refresh_cookie(response, new_refresh)
 
     return Token(access_token=new_access)
 

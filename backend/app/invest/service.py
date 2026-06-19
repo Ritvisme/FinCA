@@ -1,8 +1,31 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, timedelta
 from typing import Optional
 import uuid
 
 from app.database import get_db
+
+
+def sip_invested_to_date(sip: dict) -> float:
+    """Money actually put in through a SIP so far = installments that have occurred x amount.
+    Cancelling a SIP stops future installments (via end_date) but the past ones stay invested."""
+    freq = sip.get("frequency") or 0
+    if freq <= 0:
+        return 0.0
+    try:
+        d = date.fromisoformat(sip["start_date"])
+    except (ValueError, KeyError):
+        return 0.0
+    limit = date.today()
+    if sip.get("end_date"):
+        try:
+            limit = min(limit, date.fromisoformat(sip["end_date"]))
+        except ValueError:
+            pass
+    n = 0
+    while d <= limit:
+        n += 1
+        d += timedelta(days=freq)
+    return n * sip["amount"]
 
 async def create_holding(
     client_id:str,
@@ -145,11 +168,18 @@ async def get_portfolio_summary(client_id: str):
     goals = await get_goals(client_id)
     sips = await get_sips(client_id, active_only=False)
 
-    total_invested = sum(h["quantity"] * h["purchase_price"] for h in holdings)
+    holdings_value = sum(h["quantity"] * h["purchase_price"] for h in holdings)
     by_asset_type = {}
     for h in holdings:
         at = h["asset_type"]
         by_asset_type[at] = by_asset_type.get(at, 0) + (h["quantity"] * h["purchase_price"])
+
+    # Money accumulated through SIP installments counts as invested too — even after cancel.
+    sip_invested = sum(sip_invested_to_date(s) for s in sips)
+    if sip_invested > 0:
+        by_asset_type["SIP"] = by_asset_type.get("SIP", 0) + sip_invested
+
+    total_invested = holdings_value + sip_invested
 
     sip_by_month = {}
     for s in sips:
@@ -162,6 +192,8 @@ async def get_portfolio_summary(client_id: str):
 
     return {
         "total_invested": total_invested,
+        "holdings_value": holdings_value,
+        "sip_invested": sip_invested,
         "holding_count": len(holdings),
         "by_asset_type": by_asset_type,
         "active_goals": len(goals),

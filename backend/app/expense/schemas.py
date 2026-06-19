@@ -9,16 +9,17 @@ Categories=["Food","Transport",
 class TransactionCreate(BaseModel):
     amount:float
     category:str
-    date:Optional[date]=None
+    date:Optional[str]=None
     description:Optional[str]=None
     merchant:Optional[str]=None
 
 class TransactionUpdate(BaseModel):
     amount:Optional[float]=None
     category:Optional[str]=None
-    date:Optional[date]=None
+    date:Optional[str]=None
     description:Optional[str]=None
     merchant:Optional[str]=None
+
 class TransactionOut(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
     id:str = Field(alias="_id")
@@ -27,7 +28,7 @@ class TransactionOut(BaseModel):
     category:str
     merchant: Optional[str] = None
     description: Optional[str] = None
-    date: date
+    date: str
     source: str
     created_at: datetime
 

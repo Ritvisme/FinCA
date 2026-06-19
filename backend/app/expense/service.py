@@ -1,8 +1,51 @@
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timezone, timedelta
 from typing import Optional
+import calendar
 import uuid
 
 from app.database import get_db
+
+
+async def _invested_in_month(db, client_id: str, month: str):
+    """Total money put into investments during `month` (YYYY-MM):
+    lump-sum holdings bought that month + every SIP installment that falls in it."""
+    y, m = map(int, month.split("-"))
+    month_start = date(y, m, 1)
+    month_end = date(y, m, calendar.monthrange(y, m)[1])
+    start_s, end_s = month_start.isoformat(), month_end.isoformat()
+
+    # Holdings purchased this month
+    holdings = await db["invest_holdings"].find({"client_id": client_id}).to_list(length=500)
+    invested = sum(
+        h["quantity"] * h["purchase_price"]
+        for h in holdings
+        if h.get("buy_date") and start_s <= h["buy_date"] <= end_s
+    )
+
+    # SIP installments scheduled this month
+    sips = await db["invest_sips"].find({"client_id": client_id}).to_list(length=200)
+    for s in sips:
+        freq = s.get("frequency") or 0
+        if freq <= 0:
+            continue
+        try:
+            d = date.fromisoformat(s["start_date"])
+        except (ValueError, KeyError):
+            continue
+        # cancelled SIPs stop contributing after their end_date
+        limit = month_end
+        if s.get("end_date"):
+            try:
+                limit = min(month_end, date.fromisoformat(s["end_date"]))
+            except ValueError:
+                pass
+        while d < month_start:
+            d += timedelta(days=freq)
+        while d <= limit:
+            invested += s["amount"]
+            d += timedelta(days=freq)
+
+    return invested
 
 
 # --- Transactions ---
@@ -12,7 +55,7 @@ async def create_transaction(
     category: str,
     merchant: Optional[str] = None,
     description: Optional[str] = None,
-    txn_date: Optional[date] = None,
+    txn_date: Optional[str] = None,
     source: str = "manual",
     raw_input: Optional[str] = None,
 ):
@@ -25,7 +68,7 @@ async def create_transaction(
         "category": category,
         "merchant": merchant,
         "description": description,
-        "date": (txn_date or date.today()).isoformat(),
+        "date": txn_date or date.today().isoformat(),
         "source": source,
         "raw_input": raw_input,
         "flagged": False,
@@ -124,12 +167,17 @@ async def get_monthly_summary(client_id: str, month: str):
         {"client_id": client_id, "month": month}
     )
 
+    invested = await _invested_in_month(db, client_id, month)
+    income = budget.get("income") if budget else None
+
     return {
         "month": month,
         "total_spend": total_spend,
         "transaction_count": len(transactions),
         "by_category": by_category,
         "budget": budget,
-        "income": budget.get("income") if budget else None,
-       "surplus": (budget["income"] - total_spend) if budget and budget.get("income") is not None else None,
+        "income": income,
+        "invested": invested,
+        # surplus is what's left after both spending AND investing
+        "surplus": (income - total_spend - invested) if income is not None else None,
     }

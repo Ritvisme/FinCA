@@ -10,7 +10,13 @@ class Settings(BaseSettings):
     JWT_SECRET: str
     JWT_REFRESH_SECRET: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 7
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+
+    # Environment: "dev" or "prod" — controls cookie secure flag
+    ENVIRONMENT: str = "dev"
+
+    # Google OAuth
+    GOOGLE_CLIENT_ID: str = ""
 
     # OpenAI
     OPENAI_API_KEY: str = ""
