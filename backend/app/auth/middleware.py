@@ -39,3 +39,8 @@ async def require_client(user=Depends(get_current_user)):
     if user["role"]!="client":
         raise HTTPException(status_code=403,detail="Access forbidden: Clients only")
     return user
+
+async def require_admin(user=Depends(get_current_user)):
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Access forbidden: Admins only")
+    return user

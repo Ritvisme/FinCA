@@ -17,6 +17,9 @@ class Settings(BaseSettings):
 
     # Google OAuth
     GOOGLE_CLIENT_ID: str = ""
+    GROQ_API_KEY: str = ""
+    # One-time secret to promote a user to admin. Set in .env, keep private.
+    ADMIN_SETUP_SECRET: str = ""
 
     # OpenAI
     OPENAI_API_KEY: str = ""

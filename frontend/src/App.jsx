@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate, NavLink, useNavigate } from "react-router-dom";
-import { FiGrid, FiDollarSign, FiTrendingUp, FiLogOut, FiUser, FiMenu } from "react-icons/fi";
+import { FiGrid, FiDollarSign, FiTrendingUp, FiLogOut, FiUser, FiMenu, FiShield } from "react-icons/fi";
 import useAuthStore from "./store/authStore";
 import Login from "./pages/login";
 import Expenses from "./pages/Expenses";
 import Dashboard from "./pages/Dashboard";
 import Investments from "./pages/Investments";
+import Admin from "./pages/Admin";
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuthStore();
@@ -49,11 +50,13 @@ export default function App() {
   );
 }
 
-const NAV_ITEMS = [
+const BASE_NAV_ITEMS = [
   { to: "/", label: "Dashboard", icon: FiGrid },
   { to: "/expenses", label: "Expenses", icon: FiDollarSign },
   { to: "/investments", label: "Investments", icon: FiTrendingUp },
 ];
+
+const ADMIN_NAV_ITEM = { to: "/admin", label: "Admin", icon: FiShield };
 
 function AppLayout() {
   const { user, logout } = useAuthStore();
@@ -88,7 +91,7 @@ function AppLayout() {
           <p className="px-3 mb-2 text-[11px] font-medium uppercase tracking-wider text-[var(--muted-foreground)]">
             Menu
           </p>
-          {NAV_ITEMS.map((item) => {
+          {[...BASE_NAV_ITEMS, ...(user?.role === "admin" ? [ADMIN_NAV_ITEM] : [])].map((item) => {
             const Icon = item.icon;
             return (
               <NavLink
@@ -162,6 +165,7 @@ function AppLayout() {
               <Route path="/" element={<Dashboard />} />
               <Route path="/expenses" element={<Expenses />} />
               <Route path="/investments" element={<Investments />} />
+              <Route path="/admin" element={<Admin />} />
             </Routes>
           </div>
         </main>

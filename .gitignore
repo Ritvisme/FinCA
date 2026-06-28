@@ -41,3 +41,10 @@ frontend/.env.local
 
 # Uploads
 uploads/
+
+# graphify knowledge-graph output (generated, regenerable — don't commit)
+graphify-out/
+
+# Personal / generated docs (not part of the app)
+FinCA_Interview_Guide.pdf
+build_interview_guide.py
