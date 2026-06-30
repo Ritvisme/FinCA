@@ -18,7 +18,11 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // A 401 from the refresh endpoint itself just means "no valid session" —
+    // don't try to refresh again or redirect, or we hard-reload in a loop.
+    const isRefreshCall = originalRequest?.url?.includes("/auth/refresh");
+
+    if (error.response?.status === 401 && !originalRequest._retry && !isRefreshCall) {
       originalRequest._retry = true;
       try {
         const res = await axios.post(

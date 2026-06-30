@@ -4,7 +4,10 @@ WHICH tool and the args; client_id is injected from the authed request, never
 supplied by the model (so a user can't touch another user's data).
 """
 
-from app.expense.service import get_monthly_summary, get_transactions, create_transaction
+from app.expense.service import (
+    get_monthly_summary, get_transactions, create_transaction,
+    create_or_update_budget, get_budgets,
+)
 from app.invest.service import get_portfolio_summary, get_goals, get_holdings, get_sips
 
 TOOLS = [
@@ -46,6 +49,13 @@ TOOLS = [
             "description": {"type": "string"},
             "date": {"type": "string", "description": "YYYY-MM-DD; omit for today"}},
             "required": ["amount", "category"]}}},
+    {"type": "function", "function": {
+        "name": "set_income",
+        "description": "Set the user's monthly INCOME on their budget. Use this for income/salary/earnings — income is NOT an expense and must never be logged with add_expense.",
+        "parameters": {"type": "object", "properties": {
+            "month": {"type": "string", "description": "YYYY-MM, e.g. 2026-06"},
+            "income": {"type": "number", "description": "Monthly income in rupees"}},
+            "required": ["month", "income"]}}},
 ]
 #we are making these tools because the LLM can never see the python functions so we are defining these tools so that the LLM can call them and get the data it needs to answer the user's questions. The LLM will call these tools with the appropriate arguments, and the dispatch function will route the call to the correct service function.
 
@@ -64,10 +74,20 @@ async def dispatch(name: str, args: dict, client_id: str):
     if name == "get_sips":
         return await get_sips(client_id, args.get("active_only", True))
     if name == "add_expense":
+        # Income is not an expense — block it from being logged as a transaction.
+        if args.get("category", "").strip().lower() in {"income", "salary", "earning", "earnings", "wage", "wages"}:
+            return {"error": "Income is not an expense — use set_income to record income."}
         doc = await create_transaction(
             client_id, amount=args["amount"], category=args["category"],
             merchant=args.get("merchant"), description=args.get("description"),
             txn_date=args.get("date"), source="chat",
         )
         return {"logged": True, "amount": doc["amount"], "category": doc["category"], "date": doc["date"]}
+    if name == "set_income":
+        month = args["month"]
+        budgets = await get_budgets(client_id)
+        existing = next((b for b in budgets if b["month"] == month), None)
+        allocations = existing.get("allocations", {}) if existing else {}
+        budget = await create_or_update_budget(client_id, month, args["income"], allocations)
+        return {"income_set": budget["income"], "month": month}
     return {"error": f"unknown tool {name}"}

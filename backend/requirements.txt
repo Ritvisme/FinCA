@@ -12,4 +12,7 @@ apscheduler
 yfinance
 httpx
 pydantic[email]
+pydantic-settings
+certifi
+google-auth
 python-multipart

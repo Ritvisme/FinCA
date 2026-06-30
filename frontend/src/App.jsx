@@ -7,6 +7,7 @@ import Expenses from "./pages/Expenses";
 import Dashboard from "./pages/Dashboard";
 import Investments from "./pages/Investments";
 import Admin from "./pages/Admin";
+import ChatWidget from "./components/ChatWidget";
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuthStore();
@@ -170,6 +171,9 @@ function AppLayout() {
           </div>
         </main>
       </div>
+
+      {/* Floating AI assistant — only rendered for authenticated users */}
+      <ChatWidget />
     </div>
   );
 }
