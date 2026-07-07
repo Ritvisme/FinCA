@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { getTransactions, createTransaction, deleteTransaction, getMonthlySummary, setBudget } from "../api/expense";
+import { getTransactions, createTransaction, deleteTransaction, getMonthlySummary, setBudget, importPreview, importCommit } from "../api/expense";
 import {
   FiPlus, FiTrash2, FiX, FiShoppingBag, FiTruck, FiFilm, FiZap, FiHeart,
   FiBookOpen, FiShoppingCart, FiRepeat, FiMoreHorizontal, FiSliders, FiChevronDown,
+  FiUpload,
 } from "react-icons/fi";
+import { inr, fmtDate, fmtMonth, todayISO, currentMonth } from "../utils/format";
 
 const CATEGORIES = [
   { name: "Food", icon: FiShoppingBag, color: "#f97316" },
@@ -21,10 +23,6 @@ function getCategoryMeta(name) {
   return CATEGORIES.find((c) => c.name === name) || CATEGORIES[CATEGORIES.length - 1];
 }
 
-function getCurrentMonth() {
-  return new Date().toISOString().slice(0, 7);
-}
-
 function daysInMonth(month) {
   const [y, m] = month.split("-").map(Number);
   return new Date(y, m, 0).getDate();
@@ -33,15 +31,6 @@ function daysInMonth(month) {
 function getMonthRange(month) {
   const lastDay = daysInMonth(month);
   return { start: `${month}-01`, end: `${month}-${String(lastDay).padStart(2, "0")}` };
-}
-
-function formatDate(dateStr) {
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
-}
-
-function inr(n) {
-  return "₹" + Math.round(n || 0).toLocaleString("en-IN");
 }
 
 const AVG_PERIODS = [
@@ -58,17 +47,18 @@ function average(total, month, period) {
 }
 
 export default function Expenses() {
-  const [month, setMonth] = useState(getCurrentMonth());
+  const [month, setMonth] = useState(currentMonth());
   const [transactions, setTransactions] = useState([]);
   const [summary, setSummary] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [showBudget, setShowBudget] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const [avgPeriod, setAvgPeriod] = useState("daily");
   const [loading, setLoading] = useState(true);
 
   const [form, setForm] = useState({
     amount: "", category: "Food", merchant: "", description: "",
-    date: new Date().toISOString().slice(0, 10),
+    date: todayISO(),
   });
 
   const fetchData = async () => {
@@ -111,7 +101,7 @@ export default function Expenses() {
         merchant: form.merchant || null,
         description: form.description || null,
       });
-      setForm({ amount: "", category: "Food", merchant: "", description: "", date: new Date().toISOString().slice(0, 10) });
+      setForm({ amount: "", category: "Food", merchant: "", description: "", date: todayISO() });
       setShowForm(false);
       fetchData();
     } catch (err) {
@@ -139,7 +129,7 @@ export default function Expenses() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-semibold tracking-tight text-[var(--foreground)]">Expenses</h2>
-          <p className="text-sm text-[var(--muted-foreground)] mt-1">Track spending and budget by month.</p>
+          <p className="text-[13px] text-[var(--muted-foreground)] mt-1">Track spending and budget by month.</p>
         </div>
         <div className="flex items-center gap-3">
           <input
@@ -148,6 +138,13 @@ export default function Expenses() {
             onChange={(e) => setMonth(e.target.value)}
             className="h-9 rounded-lg border border-[var(--border)] bg-[var(--card)] px-3 text-[13px] text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-[var(--ring)] cursor-pointer"
           />
+          <button
+            onClick={() => setShowImport(true)}
+            className="h-9 px-4 rounded-lg border border-[var(--border)] text-[13px] text-[var(--foreground)] hover:bg-[var(--accent)] active:scale-[0.98] transition-all cursor-pointer flex items-center gap-2"
+          >
+            <FiUpload size={15} />
+            Import PDF
+          </button>
           <button
             onClick={() => setShowBudget(true)}
             className="h-9 px-4 rounded-lg border border-[var(--border)] text-[13px] text-[var(--foreground)] hover:bg-[var(--accent)] active:scale-[0.98] transition-all cursor-pointer flex items-center gap-2"
@@ -322,7 +319,7 @@ export default function Expenses() {
           <div className="flex items-center justify-center py-12"><div className="h-6 w-6 rounded-full border-2 border-[var(--muted)] border-t-[var(--muted-foreground)] animate-spin" /></div>
         ) : transactions.length === 0 ? (
           <div className="text-center py-12">
-            <p className="text-sm text-[var(--muted-foreground)]">No transactions this month.</p>
+            <p className="text-[13px] text-[var(--muted-foreground)]">No transactions this month.</p>
             <p className="text-[12px] text-[var(--muted-foreground)] mt-1">Click "Add expense" to get started.</p>
           </div>
         ) : (
@@ -341,7 +338,7 @@ export default function Expenses() {
                   </div>
                   <div className="text-right">
                     <p className="text-[13px] font-semibold text-[var(--foreground)]">-{inr(txn.amount)}</p>
-                    <p className="text-[12px] text-[var(--muted-foreground)]">{formatDate(txn.date)}</p>
+                    <p className="text-[12px] text-[var(--muted-foreground)]">{fmtDate(txn.date)}</p>
                   </div>
                   <button onClick={() => handleDelete(txn._id)} className="opacity-0 group-hover:opacity-100 text-[var(--muted-foreground)] hover:text-red-400 transition-all cursor-pointer ml-1"><FiTrash2 size={14} /></button>
                 </div>
@@ -361,6 +358,129 @@ export default function Expenses() {
           onSaved={() => { setShowBudget(false); fetchData(); }}
         />
       )}
+
+      {/* PDF Import Modal */}
+      {showImport && (
+        <ImportModal
+          onClose={() => setShowImport(false)}
+          onDone={() => { setShowImport(false); fetchData(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+/* ---------- PDF Import Modal ---------- */
+
+function ImportModal({ onClose, onDone }) {
+  const [phase, setPhase] = useState("pick");   // pick -> parsing -> review -> committing
+  const [rows, setRows] = useState([]);          // parsed txns + selected flag
+  const [err, setErr] = useState("");
+
+  const handleFile = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setErr(""); setPhase("parsing");
+    try {
+      const res = await importPreview(file);
+      const txns = res.data.transactions || [];
+      if (!txns.length) {
+        setErr("No transactions found in this PDF. Is it a text-based bank statement?");
+        setPhase("pick");
+        return;
+      }
+      // Debits are pre-selected; credits (salary etc.) are off by default —
+      // income belongs on the budget, not in expenses.
+      setRows(txns.map((t) => ({ ...t, selected: t.type === "debit" })));
+      setPhase("review");
+    } catch (e2) {
+      setErr(e2.response?.data?.detail || "Couldn't parse this PDF.");
+      setPhase("pick");
+    }
+  };
+
+  const commit = async () => {
+    setPhase("committing"); setErr("");
+    try {
+      const picked = rows.filter((r) => r.selected).map(({ date, merchant, amount, category }) => ({ date, merchant, amount, category }));
+      await importCommit(picked);
+      onDone();
+    } catch (e2) {
+      setErr(e2.response?.data?.detail || "Import failed — nothing was saved.");
+      setPhase("review");
+    }
+  };
+
+  const toggle = (i) => setRows(rows.map((r, j) => (j === i ? { ...r, selected: !r.selected } : r)));
+  const selectedCount = rows.filter((r) => r.selected).length;
+  const selectedTotal = rows.filter((r) => r.selected).reduce((s, r) => s + r.amount, 0);
+
+  return (
+    <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-[fadeIn_0.15s_ease] p-4" onClick={onClose}>
+      <div className="w-[560px] max-h-[88vh] flex flex-col rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)] shrink-0">
+          <div>
+            <h3 className="text-[14px] font-semibold text-[var(--foreground)]">Import bank statement</h3>
+            <p className="text-[12px] text-[var(--muted-foreground)] mt-0.5">Upload a PDF — review the parsed rows before anything is saved.</p>
+          </div>
+          <button onClick={onClose} className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors cursor-pointer"><FiX size={18} /></button>
+        </div>
+
+        <div className="p-5 overflow-y-auto min-h-0 flex-1">
+          {err && <div className="rounded-lg bg-red-500/10 border border-red-500/15 px-3 py-2 text-[12px] text-red-400 mb-4">{err}</div>}
+
+          {phase === "pick" && (
+            <label className="flex flex-col items-center justify-center gap-3 h-40 rounded-xl border border-dashed border-[var(--border)] hover:bg-[var(--accent)]/50 transition-colors cursor-pointer">
+              <FiUpload size={22} className="text-[var(--muted-foreground)]" />
+              <span className="text-[13px] text-[var(--foreground)]">Choose a statement PDF</span>
+              <span className="text-[11px] text-[var(--muted-foreground)]">Max 5 MB · text-based PDFs only</span>
+              <input type="file" accept="application/pdf" className="hidden" onChange={handleFile} />
+            </label>
+          )}
+
+          {phase === "parsing" && (
+            <div className="flex flex-col items-center gap-3 py-12">
+              <div className="h-7 w-7 rounded-full border-2 border-[var(--muted)] border-t-[var(--muted-foreground)] animate-spin" />
+              <p className="text-[13px] text-[var(--muted-foreground)]">Parsing statement…</p>
+            </div>
+          )}
+
+          {(phase === "review" || phase === "committing") && (
+            <div className="space-y-1.5">
+              {rows.map((r, i) => {
+                const meta = getCategoryMeta(r.category);
+                return (
+                  <div key={i} onClick={() => toggle(i)}
+                    className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${r.selected ? "border-[var(--border)] bg-[var(--accent)]/40" : "border-transparent opacity-45"}`}>
+                    <input type="checkbox" checked={r.selected} readOnly className="accent-[var(--foreground)] cursor-pointer" />
+                    <div className="h-7 w-7 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: meta.color + "18" }}>
+                      <meta.icon size={13} style={{ color: meta.color }} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[13px] text-[var(--foreground)] truncate">{r.merchant}</p>
+                      <p className="text-[11px] text-[var(--muted-foreground)]">{fmtDate(r.date)} · {r.category}{r.type === "credit" ? " · credit" : ""}</p>
+                    </div>
+                    <span className="text-[13px] font-medium text-[var(--foreground)]">{inr(r.amount)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {(phase === "review" || phase === "committing") && (
+          <div className="flex items-center justify-between px-5 py-4 border-t border-[var(--border)] shrink-0">
+            <p className="text-[12px] text-[var(--muted-foreground)]">{selectedCount} selected · {inr(selectedTotal)}</p>
+            <button
+              onClick={commit}
+              disabled={phase === "committing" || selectedCount === 0}
+              className="h-9 px-4 rounded-lg bg-[var(--foreground)] text-[var(--background)] text-[13px] font-medium hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
+            >
+              {phase === "committing" ? "Importing…" : `Import ${selectedCount} transactions`}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -394,7 +514,7 @@ function BudgetModal({ month, existing, existingIncome, onClose, onSaved }) {
     }
   };
 
-  const monthLabel = new Date(month + "-01").toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+  const monthLabel = fmtMonth(month);
 
   return (
     <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-[fadeIn_0.15s_ease] p-4" onClick={onClose}>
@@ -482,7 +602,7 @@ function MiniStat({ label, value, accent }) {
   return (
     <div className="rounded-lg border border-[var(--border)] p-3">
       <p className="text-[11px] font-medium text-[var(--muted-foreground)]">{label}</p>
-      <p className="text-[17px] font-semibold tracking-tight mt-1" style={{ color: accent || "var(--foreground)" }}>{value}</p>
+      <p className="text-[22px] font-semibold tracking-tight mt-1" style={{ color: accent || "var(--foreground)" }}>{value}</p>
     </div>
   );
 }

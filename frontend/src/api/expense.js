@@ -20,3 +20,14 @@ export const setBudget = (data) =>
 
 export const getMonthlySummary = (month) =>
   api.get(`/expense/summary/${month}`);
+
+export const importPreview = (file) => {
+  const form = new FormData();
+  form.append("file", file);
+  return api.post("/expense/import/preview", form, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};
+
+export const importCommit = (transactions) =>
+  api.post("/expense/import/commit", { transactions });
