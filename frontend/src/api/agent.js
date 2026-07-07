@@ -1,3 +1,9 @@
+import api from "./axios";
+
+// One-shot AI portfolio review for the Investments page (educational cards).
+export const getPortfolioReview = () =>
+  api.get("/agents/portfolio-review").then((r) => r.data);
+
 // Streaming client for the FinCA chat agent. Uses fetch (not axios) because the
 // response is a Server-Sent Events stream we read chunk-by-chunk.
 export async function streamChat(message, history, { onToken, onTool, onDone }) {

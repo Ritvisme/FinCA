@@ -148,7 +148,7 @@ def _default_month(args: dict) -> str:
 async def dispatch(name, args, client_id):
     """Safe entry point — never raises. Tool failures become {"error": ...} so the model can retry."""
     try:
-        return await _dispatch(name, args, client_id)
+        return await _dispatch(name, args or {}, client_id)
     except KeyError as e:
         return {"error": f"{name} is missing required argument {e}. Retry with all required fields."}
     except Exception as e:

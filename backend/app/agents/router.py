@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from app.auth.middleware import get_current_user
 from app.agents.chat import run_chat_stream
 from app.agents.insights import generate_insights
+from app.agents.portfolio_review import generate_portfolio_review
 
 router = APIRouter(prefix="/agents", tags=["Agents"])
 
@@ -27,3 +28,8 @@ async def chat_stream(body: ChatRequest, user=Depends(get_current_user)):
 @router.get("/insights")
 async def insights(month: str, user=Depends(get_current_user)):
     return await generate_insights(user["_id"], month)
+
+
+@router.get("/portfolio-review")
+async def portfolio_review(user=Depends(get_current_user)):
+    return await generate_portfolio_review(user["_id"])

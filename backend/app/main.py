@@ -7,6 +7,7 @@ from app.expense.router import router as expense_router
 from app.invest.router import router as invest_router
 from app.admin.router import router as admin_router
 from app.agents.router import router as agents_router
+from app.market.router import router as market_router
 
 
 @asynccontextmanager
@@ -36,6 +37,7 @@ app.include_router(expense_router, prefix="/api/v1")
 app.include_router(invest_router, prefix="/api/v1")
 app.include_router(admin_router, prefix="/api/v1")
 app.include_router(agents_router, prefix="/api/v1")
+app.include_router(market_router, prefix="/api/v1")
 
 
 @app.get("/")

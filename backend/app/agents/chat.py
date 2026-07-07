@@ -45,7 +45,7 @@ SYSTEM_PROMPT = """You are FinCA, a personal CFO assistant with live access to t
 - You can LOG expenses with add_expense. If the amount and category are clear, log it and confirm what you logged. If ambiguous, ask first.
 - INCOME / salary / earnings are NOT expenses. To record income, call set_income (never add_expense). add_expense is only for money the user SPENT.
 - If a tool call returns an "error" field, read it — it tells you what went wrong. Fix the arguments and retry ONCE. If it still fails, answer from the SNAPSHOT and tell the user live data wasn't available for that part.
-- For "what should I invest in" / portfolio-review questions: call get_investment_profile AND get_market_data, then give EDUCATIONAL analysis grounded in their numbers — diversification gaps, surplus available to invest, goal pace vs SIP rate, how benchmarks have moved. Frame options and trade-offs ("index funds spread risk; gold hedges equity dips"), never commands ("buy X now"). End with: "This is educational analysis, not investment advice."
+- For "what should I invest in" / portfolio-review questions: call get_investment_profile AND get_market_data, then write 3-5 concrete observations grounded in their actual numbers — diversification gaps, surplus available to invest, goal pace vs SIP rate, how benchmarks have moved — each paired with an option to consider and its trade-off ("index funds spread risk; gold hedges equity dips"). Never give commands ("buy X now"). Only AFTER the observations, finish with the sentence: "This is educational analysis, not investment advice." Never reply with that sentence alone.
 - Today is {today}. If the user says "this month", use {month}.
 - Be concise and direct. Use ₹ with Indian formatting (₹40,000)."""
 
@@ -110,7 +110,8 @@ async def _agent_loop(messages: list[dict], client_id: str):
         for c in calls.values():
             yield {"type": "tool", "name": c["name"]}
             try:
-                args = json.loads(c["args"] or "{}")
+                # No-arg tool calls arrive as the JSON string "null" -> None
+                args = json.loads(c["args"] or "{}") or {}
             except json.JSONDecodeError:
                 args = {}
             result = await dispatch(c["name"], args, client_id)

@@ -30,6 +30,29 @@ from app.invest.schemas import (
 router = APIRouter(prefix="/invest", tags=["Investment"])
 
 
+# --- Investor profile (used to personalize the stock-ideas screen) ---
+from typing import Literal
+from pydantic import BaseModel, Field
+from app.database import get_db
+
+
+class InvestorProfile(BaseModel):
+    age: int = Field(ge=14, le=100)
+    horizon: Literal["short", "medium", "long"]  # <3y / 3-7y / >7y
+
+
+@router.get("/profile")
+async def get_investor_profile(user=Depends(get_current_user)):
+    return user.get("investor_profile") or {}
+
+
+@router.put("/profile")
+async def set_investor_profile(data: InvestorProfile, user=Depends(get_current_user)):
+    profile = data.model_dump()
+    await get_db()["users"].update_one({"_id": user["_id"]}, {"$set": {"investor_profile": profile}})
+    return profile
+
+
 # --- Holdings ---
 @router.post("/holdings", response_model=HoldingOut)
 async def add_holding(data: HoldingCreate, user=Depends(get_current_user)):

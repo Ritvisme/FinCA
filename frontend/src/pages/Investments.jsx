@@ -2,8 +2,9 @@ import { useState, useEffect } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import {
   FiPlus, FiX, FiTrash2, FiTrendingUp, FiLayers, FiRepeat, FiTarget,
-  FiChevronRight, FiSlash,
+  FiChevronRight, FiSlash, FiZap, FiRefreshCw, FiSliders,
 } from "react-icons/fi";
+import { getStockIdeas, getInvestorProfile, saveInvestorProfile } from "../api/market";
 import {
   getHoldings, createHolding, deleteHolding,
   getSips, createSip, cancelSip,
@@ -13,6 +14,13 @@ import {
 import { inr, fmtDate, todayISO } from "../utils/format";
 
 const ASSET_TYPES = ["Stock", "etf", "crypto", "Mutual Fund", "Bonds", "Real Estate", "Gold", "Fixed Deposit", "Other"];
+
+// Tag styling for the stock-ideas screen (matches backend tag values).
+const IDEA_TAGS = {
+  momentum: { label: "Momentum", color: "#22c55e" },
+  dip: { label: "Dip", color: "#f97316" },
+  diversifier: { label: "Diversifier", color: "#3b82f6" },
+};
 
 const ASSET_COLORS = {
   Stock: "#3b82f6", etf: "#06b6d4", crypto: "#a855f7", "Mutual Fund": "#22c55e",
@@ -42,6 +50,26 @@ function sipInvested(sip) {
 
 export default function Investments() {
   const [tab, setTab] = useState("holdings");
+  const [ideas, setIdeas] = useState(null);
+  const [ideasLoading, setIdeasLoading] = useState(true);
+  const [ideasErr, setIdeasErr] = useState("");
+  const [showProfile, setShowProfile] = useState(false);
+  const [investorProfile, setInvestorProfile] = useState(null);
+
+  const loadIdeas = async () => {
+    setIdeasLoading(true); setIdeasErr("");
+    try {
+      setIdeas(await getStockIdeas());
+    } catch {
+      setIdeasErr("Couldn't load market data — try refreshing in a moment.");
+    } finally {
+      setIdeasLoading(false);
+    }
+  };
+  useEffect(() => {
+    loadIdeas();
+    getInvestorProfile().then(setInvestorProfile).catch(() => {});
+  }, []);
   const [holdings, setHoldings] = useState([]);
   const [sips, setSips] = useState([]);
   const [goals, setGoals] = useState([]);
@@ -100,6 +128,115 @@ export default function Investments() {
           Add {tab === "holdings" ? "holding" : tab === "sips" ? "SIP" : "goal"}
         </button>
       </div>
+
+      {/* Stock Ideas — live NSE screen */}
+      <div className="rounded-xl border border-[var(--border)] bg-[var(--card)] p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-[13px] font-medium text-[var(--foreground)] flex items-center gap-2">
+              <FiZap size={14} className="text-[#eab308]" />
+              Stock Ideas
+            </h3>
+            <p className="text-[12px] text-[var(--muted-foreground)] mt-0.5">
+              Live screen of liquid NSE names — educational, not investment advice.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowProfile(true)}
+              className="h-8 px-3 rounded-lg border border-[var(--border)] text-[12px] text-[var(--foreground)] hover:bg-[var(--accent)] active:scale-[0.98] transition-all cursor-pointer flex items-center gap-2"
+            >
+              <FiSliders size={13} />
+              {investorProfile?.age ? `Age ${investorProfile.age} · ${investorProfile.horizon}` : "Personalize"}
+            </button>
+            <button
+              onClick={loadIdeas}
+              disabled={ideasLoading}
+              className="h-8 px-3 rounded-lg border border-[var(--border)] text-[12px] text-[var(--foreground)] hover:bg-[var(--accent)] active:scale-[0.98] transition-all cursor-pointer flex items-center gap-2 disabled:opacity-50"
+            >
+              <FiRefreshCw size={13} className={ideasLoading ? "animate-spin" : ""} />
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {ideasErr && (
+          <div className="mt-4 rounded-lg bg-red-500/10 border border-red-500/15 px-3 py-2 text-[12px] text-red-400">{ideasErr}</div>
+        )}
+
+        {ideasLoading && !ideas && (
+          <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-3">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="h-[76px] rounded-lg border border-[var(--border)] animate-pulse bg-[var(--accent)]/40" />
+            ))}
+          </div>
+        )}
+
+        {ideas?.ideas?.length > 0 && (
+          <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-3">
+            {ideas.ideas.map((s) => {
+              const tag = IDEA_TAGS[s.tag] || IDEA_TAGS.diversifier;
+              return (
+                <div key={s.symbol} className="rounded-lg border border-[var(--border)] p-3.5 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[13px] font-semibold text-[var(--foreground)] truncate">{s.symbol}</span>
+                    <span
+                      className="text-[10px] px-1.5 py-0.5 rounded-full font-medium shrink-0"
+                      style={{ backgroundColor: tag.color + "18", color: tag.color }}
+                    >
+                      {tag.label}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-[13px] font-medium text-[var(--foreground)]">{inr(s.price)}</span>
+                    {s.owned && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--muted)] text-[var(--muted-foreground)] font-medium">Owned</span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-[var(--muted-foreground)] mt-1 truncate" title={`${s.name} — ${s.note}`}>
+                    {s.note}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Why these picks */}
+        {ideas?.why && (
+          <div className="mt-4 pt-4 border-t border-[var(--border)]">
+            <p className="text-[12px] font-medium text-[var(--foreground)]">Why these picks</p>
+            {!ideas.personalized && (
+              <p className="text-[12px] text-[var(--muted-foreground)] mt-1.5">
+                Using default weights —{" "}
+                <span className="underline underline-offset-2 cursor-pointer hover:text-[var(--foreground)]" onClick={() => setShowProfile(true)}>
+                  set your age & investment horizon
+                </span>{" "}
+                to personalize the split.
+              </p>
+            )}
+            <ul className="mt-1.5 space-y-1">
+              {ideas.why.factors.map((f, i) => (
+                <li key={i} className="text-[12px] text-[var(--muted-foreground)] flex gap-2">
+                  <span className="text-[var(--foreground)]">•</span>{f}
+                </li>
+              ))}
+            </ul>
+            <p className="text-[11px] text-[var(--muted-foreground)] mt-2.5">
+              Screen criteria — Momentum: {ideas.why.criteria.momentum} · Dip: {ideas.why.criteria.dip} · Diversifier: {ideas.why.criteria.diversifier}. Universe: {ideas.why.criteria.universe}.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* Investor profile modal */}
+      {showProfile && (
+        <ProfileModal
+          existing={investorProfile}
+          onClose={() => setShowProfile(false)}
+          onSaved={(p) => { setInvestorProfile(p); setShowProfile(false); loadIdeas(); }}
+        />
+      )}
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -403,6 +540,73 @@ function Field({ label, children }) {
     <div className="space-y-1.5">
       <label className="text-[12px] font-medium text-[var(--muted-foreground)]">{label}</label>
       {children}
+    </div>
+  );
+}
+
+function ProfileModal({ existing, onClose, onSaved }) {
+  const [age, setAge] = useState(existing?.age ? String(existing.age) : "");
+  const [horizon, setHorizon] = useState(existing?.horizon || "long");
+  const [saving, setSaving] = useState(false);
+  const [err, setErr] = useState("");
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setSaving(true); setErr("");
+    try {
+      const saved = await saveInvestorProfile({ age: parseInt(age, 10), horizon });
+      onSaved(saved);
+    } catch {
+      setErr("Couldn't save — check the values and try again.");
+      setSaving(false);
+    }
+  };
+
+  const HORIZONS = [
+    { value: "short", label: "Short — under 3 years" },
+    { value: "medium", label: "Medium — 3 to 7 years" },
+    { value: "long", label: "Long — over 7 years" },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-[fadeIn_0.15s_ease] p-4" onClick={onClose}>
+      <div className="w-[400px] rounded-xl border border-[var(--border)] bg-[var(--card)] shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
+          <div>
+            <h3 className="text-[14px] font-semibold text-[var(--foreground)]">Investor profile</h3>
+            <p className="text-[12px] text-[var(--muted-foreground)] mt-0.5">Used to weight the stock ideas for you.</p>
+          </div>
+          <button onClick={onClose} className="text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors cursor-pointer"><FiX size={18} /></button>
+        </div>
+        <form onSubmit={submit} className="p-5 space-y-4">
+          {err && <div className="rounded-lg bg-red-500/10 border border-red-500/15 px-3 py-2 text-[12px] text-red-400">{err}</div>}
+          <div className="space-y-2">
+            <label className="text-[12px] font-medium text-[var(--muted-foreground)]">Age</label>
+            <input
+              type="number" min="14" max="100" required value={age}
+              onChange={(e) => setAge(e.target.value)} placeholder="e.g. 21"
+              className="w-full h-9 rounded-lg border border-[var(--border)] bg-transparent px-3 text-[13px] text-[var(--foreground)] placeholder:text-[var(--muted-foreground)]/50 focus:outline-none focus:ring-1 focus:ring-[var(--ring)]"
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-[12px] font-medium text-[var(--muted-foreground)]">Investment horizon</label>
+            <div className="space-y-1.5">
+              {HORIZONS.map((h) => (
+                <label key={h.value} className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors text-[13px] ${horizon === h.value ? "border-[var(--foreground)]/40 bg-[var(--accent)] text-[var(--foreground)]" : "border-[var(--border)] text-[var(--muted-foreground)] hover:bg-[var(--accent)]/50"}`}>
+                  <input type="radio" name="horizon" value={h.value} checked={horizon === h.value} onChange={() => setHorizon(h.value)} className="accent-[var(--foreground)]" />
+                  {h.label}
+                </label>
+              ))}
+            </div>
+          </div>
+          <button
+            type="submit" disabled={saving}
+            className="w-full h-9 rounded-lg bg-[var(--foreground)] text-[var(--background)] text-[13px] font-medium hover:opacity-90 active:scale-[0.98] transition-all cursor-pointer disabled:opacity-50"
+          >
+            {saving ? "Saving…" : "Save & re-screen"}
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
