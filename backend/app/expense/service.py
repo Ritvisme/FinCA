@@ -152,8 +152,9 @@ async def get_budgets(client_id: str):
 # --- Analytics ---
 async def get_monthly_summary(client_id: str, month: str):
     db = get_db()
+    y, m = map(int, month.split("-"))
     start = f"{month}-01"
-    end = f"{month}-31"
+    end = date(y, m, calendar.monthrange(y, m)[1]).isoformat()  # real last day, valid ISO
 
     transactions = await get_transactions(client_id, start_date=start, end_date=end)
 

@@ -17,7 +17,7 @@ function ProtectedRoute({ children }) {
       <div className="min-h-screen flex items-center justify-center bg-[var(--background)]">
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 rounded-full border-2 border-[var(--muted)] border-t-[var(--muted-foreground)] animate-spin" />
-          <p className="text-sm text-[var(--muted-foreground)]">Loading...</p>
+          <p className="text-[13px] text-[var(--muted-foreground)]">Loading...</p>
         </div>
       </div>
     );
@@ -82,7 +82,7 @@ function AppLayout() {
           <div className="h-7 w-7 rounded-lg bg-[var(--foreground)] flex items-center justify-center shrink-0">
             <span className="text-[var(--background)] text-xs font-bold">F</span>
           </div>
-          <span className="text-sm font-semibold tracking-tight text-[var(--foreground)]">
+          <span className="text-[14px] font-semibold tracking-tight text-[var(--foreground)]">
             FinCA
           </span>
         </div>

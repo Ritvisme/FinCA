@@ -1,15 +1,7 @@
 import { useState, useEffect } from "react";
 import { FiUsers, FiCreditCard, FiTrendingUp, FiRepeat, FiShield } from "react-icons/fi";
 import { listUsers, getStats } from "../api/admin";
-
-function inr(n) {
-  return "₹" + Math.round(n || 0).toLocaleString("en-IN");
-}
-
-function fmtDate(iso) {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
-}
+import { inr, fmtDate } from "../utils/format";
 
 export default function Admin() {
   const [stats, setStats] = useState(null);
@@ -54,7 +46,7 @@ export default function Admin() {
         <h2 className="text-2xl font-semibold tracking-tight text-[var(--foreground)] flex items-center gap-2">
           <FiShield size={20} /> Admin
         </h2>
-        <p className="text-sm text-[var(--muted-foreground)] mt-1">
+        <p className="text-[13px] text-[var(--muted-foreground)] mt-1">
           Platform overview — users, transactions, and portfolio activity.
         </p>
       </div>
@@ -112,7 +104,7 @@ export default function Admin() {
               ))}
               {users.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="text-center text-sm text-[var(--muted-foreground)] py-12">
+                  <td colSpan={6} className="text-center text-[13px] text-[var(--muted-foreground)] py-12">
                     No users yet.
                   </td>
                 </tr>

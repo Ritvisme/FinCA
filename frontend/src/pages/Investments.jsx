@@ -10,6 +10,7 @@ import {
   getGoals, createGoal, deleteGoal,
   getPortfolio,
 } from "../api/invest";
+import { inr, fmtDate, todayISO } from "../utils/format";
 
 const ASSET_TYPES = ["Stock", "etf", "crypto", "Mutual Fund", "Bonds", "Real Estate", "Gold", "Fixed Deposit", "Other"];
 
@@ -18,17 +19,9 @@ const ASSET_COLORS = {
   Bonds: "#eab308", "Real Estate": "#f97316", Gold: "#f59e0b", "Fixed Deposit": "#14b8a6", Other: "#71717a",
 };
 
-function inr(n) {
-  return "₹" + (n || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 });
-}
-
 function freqLabel(days) {
   const map = { 1: "Daily", 7: "Weekly", 30: "Monthly", 90: "Quarterly", 180: "Half-yearly", 365: "Yearly" };
   return map[days] || `Every ${days} days`;
-}
-
-function today() {
-  return new Date().toISOString().slice(0, 10);
 }
 
 // Money invested through a SIP so far = installments that have occurred x amount.
@@ -95,7 +88,7 @@ export default function Investments() {
           <h2 className="text-2xl font-semibold tracking-tight text-[var(--foreground)]">
             Investments
           </h2>
-          <p className="text-sm text-[var(--muted-foreground)] mt-1">
+          <p className="text-[13px] text-[var(--muted-foreground)] mt-1">
             Track your portfolio, SIPs, and savings goals.
           </p>
         </div>
@@ -249,7 +242,7 @@ function SipsList({ sips, onCancel }) {
                 ? <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-400 font-medium">Active</span>
                 : <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--muted)] text-[var(--muted-foreground)] font-medium">Cancelled</span>}
             </div>
-            <p className="text-[12px] text-[var(--muted-foreground)]">{inr(s.amount)} · {freqLabel(s.frequency)} · since {s.start_date}</p>
+            <p className="text-[12px] text-[var(--muted-foreground)]">{inr(s.amount)} · {freqLabel(s.frequency)} · since {fmtDate(s.start_date)}</p>
           </div>
           <div className="text-right">
             <p className="text-[13px] font-semibold text-[var(--foreground)]">{inr(sipInvested(s))}</p>
@@ -277,7 +270,7 @@ function GoalsList({ goals, onDelete }) {
             <div className="flex items-center justify-between mb-2">
               <p className="text-[13px] font-medium text-[var(--foreground)]">{g.name}</p>
               <div className="flex items-center gap-2">
-                <span className="text-[12px] text-[var(--muted-foreground)]">by {g.target_date}</span>
+                <span className="text-[12px] text-[var(--muted-foreground)]">by {fmtDate(g.target_date)}</span>
                 <button onClick={() => onDelete(g._id)} className="opacity-0 group-hover:opacity-100 text-[var(--muted-foreground)] hover:text-red-400 transition-all cursor-pointer">
                   <FiTrash2 size={13} />
                 </button>
@@ -304,9 +297,9 @@ function AddModal({ tab, onClose, onSaved }) {
   const [err, setErr] = useState("");
   const [form, setForm] = useState(
     tab === "holdings"
-      ? { name: "", asset_type: "Stock", quantity: "", purchase_price: "", buy_date: today() }
+      ? { name: "", asset_type: "Stock", quantity: "", purchase_price: "", buy_date: todayISO() }
       : tab === "sips"
-      ? { name: "", amount: "", frequency: 30, start_date: today() }
+      ? { name: "", amount: "", frequency: 30, start_date: todayISO() }
       : { name: "", target_amount: "", current_amount: "", target_date: "" }
   );
 

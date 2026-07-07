@@ -51,7 +51,7 @@ export default function Login() {
             <span className="text-[var(--background)] text-sm font-bold">F</span>
           </div>
           <div className="text-center space-y-1.5">
-            <h1 className="text-xl font-semibold tracking-tight text-[var(--foreground)]">
+            <h1 className="text-2xl font-semibold tracking-tight text-[var(--foreground)]">
               {isRegister ? "Create your account" : "Welcome back"}
             </h1>
             <p className="text-[13px] text-[var(--muted-foreground)]">

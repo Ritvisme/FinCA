@@ -9,6 +9,7 @@ import {
 } from "react-icons/fi";
 import { getMonthlySummary } from "../api/expense";
 import { getPortfolio, getGoals } from "../api/invest";
+import { inr, fmtMonth, currentMonth } from "../utils/format";
 
 const CAT_COLORS = {
   Food: "#f97316", Transport: "#3b82f6", Entertainment: "#a855f7",
@@ -17,14 +18,6 @@ const CAT_COLORS = {
 };
 
 const ASSET_COLORS = ["#3b82f6", "#22c55e", "#a855f7", "#f97316", "#eab308", "#ec4899", "#06b6d4", "#ef4444", "#71717a"];
-
-function currentMonth() {
-  return new Date().toISOString().slice(0, 7);
-}
-
-function inr(n) {
-  return "₹" + (n || 0).toLocaleString("en-IN", { maximumFractionDigits: 0 });
-}
 
 export default function Dashboard() {
   const [summary, setSummary] = useState(null);
@@ -97,8 +90,8 @@ export default function Dashboard() {
           <h2 className="text-2xl font-semibold tracking-tight text-[var(--foreground)]">
             Dashboard
           </h2>
-          <p className="text-sm text-[var(--muted-foreground)] mt-1">
-            Overview for {new Date(month + "-01").toLocaleDateString("en-IN", { month: "long", year: "numeric" })}.
+          <p className="text-[13px] text-[var(--muted-foreground)] mt-1">
+            Overview for {fmtMonth(month)}.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -170,7 +163,7 @@ export default function Dashboard() {
                 </ResponsiveContainer>
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                   <span className="text-[10px] text-[var(--muted-foreground)]">Total</span>
-                  <span className="text-[15px] font-semibold text-[var(--foreground)]">{inr(totalSpent)}</span>
+                  <span className="text-[14px] font-semibold text-[var(--foreground)]">{inr(totalSpent)}</span>
                 </div>
               </div>
               <div className="flex-1 space-y-2 min-w-0">
