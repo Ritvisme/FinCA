@@ -1,7 +1,12 @@
 import axios from "axios";
 
+// Base API URL. Set VITE_API_URL in production (Vercel) to the Render backend,
+// e.g. https://finca-backend.onrender.com — defaults to local dev otherwise.
+export const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_V1 = `${API_BASE}/api/v1`;
+
 const api = axios.create({
-  baseURL: "http://localhost:8000/api/v1",
+  baseURL: API_V1,
   withCredentials: true,
 });
 
@@ -26,7 +31,7 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       try {
         const res = await axios.post(
-          "http://localhost:8000/api/v1/auth/refresh",
+          `${API_V1}/auth/refresh`,
           {},
           { withCredentials: true }
         );

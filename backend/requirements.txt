@@ -16,3 +16,4 @@ pydantic-settings
 certifi
 google-auth
 python-multipart
+slowapi

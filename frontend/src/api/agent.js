@@ -1,4 +1,4 @@
-import api from "./axios";
+import api, { API_BASE } from "./axios";
 
 // One-shot AI portfolio review for the Investments page (educational cards).
 export const getPortfolioReview = () =>
@@ -8,7 +8,7 @@ export const getPortfolioReview = () =>
 // response is a Server-Sent Events stream we read chunk-by-chunk.
 export async function streamChat(message, history, { onToken, onTool, onDone }) {
   const token = localStorage.getItem("access_token");
-  const res = await fetch("http://localhost:8000/api/v1/agents/chat/stream", {
+  const res = await fetch(`${API_BASE}/api/v1/agents/chat/stream`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     credentials: "include",

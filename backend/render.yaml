@@ -1,0 +1,32 @@
+# Render blueprint for the FinCA backend.
+# In the Render dashboard: New → Blueprint → point at this repo (root dir = backend),
+# or create a Web Service manually with the build/start commands below.
+services:
+  - type: web
+    name: finca-backend
+    runtime: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.13"  # match the local venv; avoids wheel breaks on newer Python
+      - key: ENVIRONMENT
+        value: prod
+      - key: MONGO_URI
+        sync: false
+      - key: DB_NAME
+        value: finca
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_REFRESH_SECRET
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: ADMIN_SETUP_SECRET
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false  # set to your Vercel URL, e.g. https://finca.vercel.app

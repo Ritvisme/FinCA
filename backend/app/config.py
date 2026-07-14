@@ -12,8 +12,20 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     REFRESH_TOKEN_EXPIRE_DAYS: int = 30
 
-    # Environment: "dev" or "prod" — controls cookie secure flag
+    # Environment: "dev" or "prod" — controls cookie secure/samesite flags
     ENVIRONMENT: str = "dev"
+
+    # Comma-separated list of allowed frontend origins for CORS.
+    # In prod set e.g. "https://finca.vercel.app"
+    CORS_ORIGINS: str = "http://localhost:5173"
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        return [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
+
+    @property
+    def is_prod(self) -> bool:
+        return self.ENVIRONMENT == "prod"
 
     # Google OAuth
     GOOGLE_CLIENT_ID: str = ""

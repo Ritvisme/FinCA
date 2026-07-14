@@ -1,8 +1,9 @@
 from datetime import datetime, timezone, date
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
 from app.auth.middleware import get_current_user
+from app.rate_limit import limiter
 from app.invest.service import get_holdings, get_portfolio_summary
 from app.expense.service import get_monthly_summary
 from app.market.screener import stock_ideas
@@ -11,7 +12,8 @@ router = APIRouter(prefix="/market", tags=["Market"])
 
 
 @router.get("/ideas")
-async def ideas(user=Depends(get_current_user)):
+@limiter.limit("30/minute")
+async def ideas(request: Request, user=Depends(get_current_user)):
     client_id = user["_id"]
     holdings = await get_holdings(client_id)
     portfolio = await get_portfolio_summary(client_id)

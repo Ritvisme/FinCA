@@ -22,12 +22,15 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 def _set_refresh_cookie(response: Response, refresh_token: str) -> None:
     """One helper so login, refresh, and Google-login all match."""
+    # In prod the frontend (e.g. vercel.app) and backend (e.g. onrender.com) are
+    # different sites, so the cookie must be SameSite=None + Secure to be sent
+    # cross-origin. Locally, Lax over http is correct.
     response.set_cookie(
         key="refresh_token",
         value=refresh_token,
         httponly=True,
-        secure=settings.ENVIRONMENT == "prod",
-        samesite="lax",
+        secure=settings.is_prod,
+        samesite="none" if settings.is_prod else "lax",
         max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
     )
 
